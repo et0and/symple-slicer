@@ -204,7 +204,7 @@ class SelectProfilesPage {
         s.radio( "Load slicer settings from saved file",             {...attr, value: "from-import"});
         s.radio( "Keep slicer settings from last session",           {...attr, value: "from-session"});
 
-        s.div({id: "profile_choices", className: "load-profiles"});
+        s.div({dataRadio: "profile-source", dataValue: "from-profiles"});
         s.separator(                                                 {type: "br"});
         attr = {onchange: SelectProfilesPage.onDropDownChange};
         const manufacturer_menu = s.choice( "Manufacturer:",         {...attr, id: "machine_manufacturers"});
@@ -216,24 +216,24 @@ class SelectProfilesPage {
         const material_menu = s.choice(     "Material:",             {...attr, id: "print_profiles"});
         s.div();
 
-        s.div({className: "import-settings"});
+        s.div({dataRadio: "profile-source", dataValue: "from-import"});
         s.separator(                                                 {type: "br"});
         s.file(       "Drag and drop settings<br><small>(.TOML)</small>", {id: "toml_file", onchange: SelectProfilesPage.onImportChanged, mode: 'text'});
         s.div();
 
         s.footer();
 
-        s.div({className: "keep-settings"});
+        s.div({dataRadio: "profile-source", dataValue: "from-session"});
         s.button(     "Next",                                        {onclick: SelectProfilesPage.onNext});
         s.buttonHelp( "Click this button to proceed to placing objects.");
         s.div();
 
-        s.div({className: "load-profiles"});
+        s.div({dataRadio: "profile-source", dataValue: "from-profiles"});
         s.button(     "Apply",                                       {onclick: SelectProfilesPage.onApplyPreset});
         s.buttonHelp( "Click this button to load profiles and proceed to placing objects.");
         s.div();
 
-        s.div({className: "import-settings"});
+        s.div({dataRadio: "profile-source", dataValue: "from-import"});
         s.button(     "Apply",                                       {id: "import_settings", onclick: SelectProfilesPage.onImportClicked});
         s.buttonHelp( "Click this button to load slicer settings and proceed to placing objects.");
         s.div();
@@ -249,6 +249,8 @@ class SelectProfilesPage {
             material_brands: brand_menu,
             print_profiles: material_menu
         });
+
+        s.linkRadioToDivs('profile-source');
 
         SelectProfilesPage.onImportChanged(false); // Disable buttons
 
@@ -418,9 +420,7 @@ class SelectProfilesPage {
     }
 
     static onProfileSourceChanged(e) {
-        const source = e ? e.target.value : 'from-profiles';
-        $(settings.ui).attr('data-profile-source', source);
-        localStorage.setItem('profile-source', source);
+        localStorage.setItem('profile-source', e.target.value);
     }
 
     static setProfileSource(source) {
@@ -470,6 +470,7 @@ class PlaceObjectsPage {
         s.category("Place More");
         s.number(     "How many more to place?",                     {id: "place_quantity", value: "1", min: "1", max: "50", onchange: SettingsPanel.enforceMinMax});
         s.button(     "Place more",                                  {className: "place_more", onclick: PlaceObjectsPage.onAddToPlatform});
+        s.category();
         s.div();
 
         s.div({id: "load_images"});
@@ -881,41 +882,46 @@ class PrintAndPreviewPage {
         s.slider(         "Show layer",                              {id: "preview_layer", oninput: PrintAndPreviewPage.onUpdateLayer});
         s.number(         "Top layer",                               {id: "current_layer", className: "readonly"});
 
+        s.category(   "Post-Processing Options");
+        PauseAtLayer.init(s);
+
         s.category(   "Print Options",                               {open: "open"});
-        const attr = {name: "print_destination", onchange: PrintAndPreviewPage.onOutputChanged};
+        const attr = {name: "print_to", onchange: PrintAndPreviewPage.onOutputChanged};
         s.radio( "Print through a USB cable:",                       {...attr, value: "print-to-usb"});
         s.radio( "Print to printer wirelessly:",                     {...attr, value: "print-to-wifi"});
         s.radio( "Save G-code to printer wirelessly:",               {...attr, value: "save-to-wifi"});
         s.radio( "Save G-code to file for printing:",                {...attr, value: "save-to-file", checked: "checked"});
 
         /* Choices for wireless and saving to file */
-        s.text(           "Save as:",                                {id: "gcode_filename",  className: "gcode_filename filename", value: "output.gcode"});
-        s.choice(         "Wireless capable printer:",               {id: "printer_choices", className: "printer_choices"});
+        s.text(           "Save as:",                                {id: "gcode_filename",  className: "stretch", value: "output.gcode", dataRadio: "print_to", dataValue: "save-to-file save-to-wifi"});
+        s.choice(         "Wireless capable printer:",               {id: "printer_choices", dataRadio: "print_to", dataValue: "print-to-wifi save-to-wifi"});
         s.category();
 
         s.element(                                                   {id: "gcode-out-of-bounds"});
 
         s.footer();
 
-        s.div({className: "print-to-usb"});
+        s.div({dataRadio: "print_to", dataValue: "print-to-usb"});
         s.button(     "Print",                                       {onclick: PrintAndPreviewPage.onPrintClicked});
         s.buttonHelp( "Click this button to print to your printer via a USB cable.");
         s.div();
 
-        s.div({className: "print-to-wifi"});
+        s.div({dataRadio: "print_to", dataValue: "print-to-wifi"});
         s.button(     "Print",                                       {onclick: PrintAndPreviewPage.onPrintToWiFi});
         s.buttonHelp( "Click this button to print to your printer wirelessly.");
         s.div();
 
-        s.div({className: "save-to-wifi"});
+        s.div({dataRadio: "print_to", dataValue: "save-to-wifi"});
         s.button(     "Save",                                        {onclick: PrintAndPreviewPage.onUploadToWiFi});
         s.buttonHelp( "Click this button to save G-code to your printer wirelessly (without printing).");
         s.div();
 
-        s.div({className: "save-to-file"});
+        s.div({dataRadio: "print_to", dataValue: "save-to-file"});
         s.button(     "Save",                                        {onclick: PrintAndPreviewPage.onDownloadClicked});
         s.buttonHelp( "Click this button to save G-code for your printer to a file.");
         s.div();
+
+        s.linkRadioToDivs('print_to');
 
         const defaultOutput = localStorage.getItem('data-output') || 'file';
         PrintAndPreviewPage.setOutput(defaultOutput);
@@ -924,7 +930,7 @@ class PrintAndPreviewPage {
     }
 
     static updateOutputChoices() {
-        const selectedChoice = settings.get("print_destination");
+        const selectedChoice = settings.get("print_to");
         let selectedChoiceHidden = false;
 
         function showOrHide(id, show) {
@@ -947,13 +953,12 @@ class PrintAndPreviewPage {
     }
 
     static setOutput(what) {
-        settings.set("print_destination", what);
+        settings.set("print_to", what);
         this.onOutputChanged(what)
     }
 
     static onOutputChanged(e) {
         const dataOutput = e.target ? e.target.value : e;
-        $(settings.ui).attr('data-output', dataOutput);
         localStorage.setItem('data-output', dataOutput);
     }
 
@@ -980,7 +985,9 @@ class PrintAndPreviewPage {
         ProgressBar.hide();
         settings.gotoPage("page_print");
         var decoder = new TextDecoder();
-        this.loadSlicedGcode(decoder.decode(data));
+        const gcode = decoder.decode(data);
+        PauseAtLayer.postProcess(gcode);
+        this.loadSlicedGcode(gcode);
     }
 
     static extractDataFromGcodeHeader(gcode) {
@@ -1198,7 +1205,7 @@ class AdvancedFeaturesPage {
         s.toggle(         "Save implicit values",                    {id: "export_with_unchanged",
            tooltip: "Include all values, including those absent in profiles and unchanged by the user. This provides documentation for values that may have been implicitly computed from other settings."});
         s.separator(                                                 {type: "br"});
-        s.text(       "Save as:",                                    {id: "export_filename", value: "slicer_settings.toml", className: "webapp-only filename"});
+        s.text(       "Save as:",                                    {id: "export_filename", value: "slicer_settings.toml", className: "webapp-only stretch"});
         s.separator(                                                 {type: "br"});
         s.button(     "Save",                                        {onclick: AdvancedFeaturesPage.onExportClicked});
         s.buttonHelp( "Click this button to save current settings to a file on your computer.");
